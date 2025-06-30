@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-multipart
+celery[redis]
+pandas
+textblob
+wordcloud
+matplotlib
+plotly
+seaborn
