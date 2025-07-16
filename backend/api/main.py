@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles # <-- I had put a comment here before
 import os
@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 @app.post("/upload", status_code=202)
-async def upload_chat_file(file: UploadFile = File(...)):
+async def upload_chat_file(file: UploadFile = File(...), language: str = Form("en")):
     if not file.filename.endswith('.txt'):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt file.")
     
@@ -36,7 +36,7 @@ async def upload_chat_file(file: UploadFile = File(...)):
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="Could not decode file. Please ensure it is a UTF-8 encoded text file.")
 
-    task = run_analysis_task.delay(content_str)
+    task = run_analysis_task.delay(content_str, language)
     return {"task_id": task.id}
 
 @app.get("/status/{task_id}")

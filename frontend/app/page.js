@@ -6,6 +6,7 @@ import FileUploader from '@/components/FileUploader';
 import Dashboard from '@/components/Dashboard';
 import useTaskPolling from '@/hooks/useTaskPolling';
 import { Loader2 } from 'lucide-react';
+import LanguageSelector from '@/components/LanguageSelector';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -13,6 +14,7 @@ export default function Home() {
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
   const [taskId, setTaskId] = useState(null);
+  const [language, setLanguage] = useState('en');
 
   const { task, isLoading, progress } = useTaskPolling(taskId, setTaskId);
 
@@ -24,6 +26,7 @@ export default function Home() {
 
     const formData = new FormData();
     formData.append('file', acceptedFile);
+    formData.append('language', language);
 
     try {
       const response = await axios.post(`${API_URL}/upload`, formData, {
@@ -47,6 +50,7 @@ export default function Home() {
   
   return (
     <div className="w-full max-w-5xl mx-auto">
+      <LanguageSelector value={language} onChange={setLanguage} />
       {!task && !isLoading && (
         <FileUploader onFileUpload={handleFileUpload} error={error} />
       )}

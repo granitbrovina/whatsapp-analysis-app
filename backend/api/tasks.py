@@ -17,14 +17,14 @@ celery_app.conf.update(
 )
 
 @celery_app.task(bind=True)
-def run_analysis_task(self, file_content: str):
+def run_analysis_task(self, file_content: str, language: str = 'en'):
     """
     Celery task that lets Celery handle its own exceptions.
     """
     # Celery will automatically catch exceptions from these functions
     
     self.update_state(state='PROGRESS', meta={'status': 'Parsing chat file...'})
-    df = parse_whatsapp_chat(file_content)
+    df = parse_whatsapp_chat(file_content, language)
     
     # Convert datetime to handle JSON serialization
     df_json = df.to_json(orient='split', date_format='iso')

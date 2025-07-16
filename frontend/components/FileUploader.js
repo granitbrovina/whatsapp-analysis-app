@@ -3,7 +3,7 @@
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, XCircle } from 'lucide-react';
 
-export default function FileUploader({ onFileUpload, error }) {
+export default function FileUploader({ onFileUpload, error, language }) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => onFileUpload(acceptedFiles[0]),
     accept: { 'text/plain': ['.txt'] },

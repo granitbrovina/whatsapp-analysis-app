@@ -37,8 +37,24 @@ def response_time_analysis(df):
         return {}
     return responses.groupby('Author')['ResponseMinutes'].describe()[['mean', '50%', 'min', 'max']].rename(columns={'50%': 'median'}).to_dict('index')
 
-def love_words_analysis(df):
-    love_words = ['love', 'baby', 'babe', 'honey', 'sweetheart', 'darling', 'miss', 'zemer', 'bb', 'shpirt', 'syn', 'dashni', 'dashuri', 'bukuroshe']
+# --- Language-specific resources ---
+STOP_WORDS = {
+    'en': set(['the', 'to', 'and', 'a', 'of', 'it', 'in', 'you', 'that', 'i', 'is', 'for', 'on', 'are', 'with', 'as', 'this', 'was', 'we', 'be', 'have', 'but', 'not', 'your', 'so', 'me', 'my', 'at', 'he', 'she', 'all', 'omitted', 'media', 'message', 'deleted', 'ok', 'okay', 'yeah', 'lol', 'im', 'its', 'dont', 'yes', 'no']),
+    'es': set(['el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'ser', 'se', 'no', 'haber', 'por', 'con', 'su', 'para', 'como', 'estar', 'tener', 'le', 'lo', 'todo', 'pero', 'más', 'hacer', 'o', 'poder', 'decir', 'este', 'ir', 'otro', 'ese', 'si', 'me', 'ya', 'ver', 'porque', 'dar', 'cuando', 'él', 'muy', 'sin', 'vez', 'mucho', 'saber', 'qué', 'sobre', 'mi', 'alguno', 'mismo', 'yo', 'también', 'hasta', 'año', 'dos', 'querer', 'entre', 'así', 'primero', 'desde', 'grande', 'eso', 'ni', 'nos', 'lugar', 'mujer', 'vida', 'siempre', 'día', 'uno', 'bien', 'poco', 'deber', 'entonces', 'poner', 'cosa', 'tanto', 'hombre', 'parecer', 'nuestro', 'tan', 'donde', 'ahora', 'parte', 'después', 'nuevo', 'quedar', 'hablar', 'llevar', 'dejar', 'nada', 'cada', 'seguir', 'menos', 'nuevo', 'encontrar', 'algo', 'solo', 'venir', 'pensar', 'salir', 'volver', 'forma', 'medio', 'mientras', 'momento', 'tipo', 'cambiar', 'nuevo', 'trabajo', 'mano', 'decir', 'fin', 'hora', 'persona', 'vez', 'aqui', 'ahi', 'ahi', 'omitted', 'media', 'mensaje', 'eliminado']),
+    'de': set(['der', 'die', 'und', 'in', 'den', 'von', 'zu', 'mit', 'auf', 'für', 'ist', 'im', 'des', 'dem', 'nicht', 'ein', 'eine', 'als', 'auch', 'es', 'an', 'am', 'aus', 'er', 'sie', 'nach', 'bei', 'wir', 'was', 'so', 'wie', 'dass', 'hat', 'ich', 'aber', 'noch', 'oder', 'nur', 'man', 'über', 'vor', 'zur', 'durch', 'mehr', 'bis', 'sein', 'wird', 'sich', 'um', 'uns', 'wenn', 'schon', 'ja', 'mir', 'ihm', 'ihn', 'ihr', 'ihnen', 'diese', 'dieser', 'dieses', 'diesen', 'dass', 'vom', 'beim', 'zum', 'zur', 'vom', 'wurde', 'werden', 'einen', 'einem', 'einer', 'eines', 'omitted', 'medien', 'nachricht', 'gelöscht']),
+    'pt': set(['de', 'a', 'o', 'que', 'e', 'do', 'da', 'em', 'um', 'para', 'é', 'com', 'não', 'uma', 'os', 'no', 'se', 'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'foi', 'ao', 'ele', 'das', 'tem', 'à', 'seu', 'sua', 'ou', 'ser', 'quando', 'muito', 'há', 'nos', 'já', 'está', 'eu', 'também', 'só', 'pelo', 'pela', 'até', 'isso', 'ela', 'entre', 'era', 'depois', 'sem', 'mesmo', 'aos', 'ter', 'seus', 'quem', 'nas', 'me', 'esse', 'eles', 'estão', 'você', 'tinha', 'foram', 'essa', 'num', 'nem', 'suas', 'meu', 'às', 'minha', 'têm', 'numa', 'pelos', 'elas', 'havia', 'seja', 'qual', 'será', 'nós', 'tenho', 'lhe', 'deles', 'essas', 'esses', 'pelas', 'este', 'dele', 'tu', 'te', 'vocês', 'vos', 'lhes', 'meus', 'minhas', 'teu', 'tua', 'teus', 'tuas', 'nosso', 'nossa', 'nossos', 'nossas', 'dela', 'delas', 'esta', 'estes', 'estas', 'aquele', 'aquela', 'aqueles', 'aquelas', 'isto', 'aquilo', 'estou', 'está', 'estamos', 'estão', 'estive', 'esteve', 'estivemos', 'estiveram', 'estava', 'estávamos', 'estavam', 'estivera', 'estivéramos', 'esteja', 'estejamos', 'estejam', 'estivesse', 'estivéssemos', 'estivessem', 'estiver', 'estivermos', 'estiverem', 'omitted', 'mídia', 'mensagem', 'excluída']),
+    'it': set(['di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'ma', 'ed', 'se', 'non', 'più', 'come', 'che', 'chi', 'cui', 'quale', 'quali', 'quello', 'quella', 'quelli', 'quelle', 'questo', 'questa', 'questi', 'queste', 'mi', 'ti', 'ci', 'vi', 'si', 'lui', 'lei', 'noi', 'voi', 'loro', 'mio', 'mia', 'miei', 'mie', 'tuo', 'tua', 'tuoi', 'tue', 'suo', 'sua', 'suoi', 'sue', 'nostro', 'nostra', 'nostri', 'nostre', 'vostro', 'vostra', 'vostri', 'vostre', 'loro', 'proprio', 'propria', 'propri', 'proprie', 'quest', 'quell', 'dell', 'all', 'nell', 'sull', 'coll', 'dalla', 'dallo', 'dalla', 'dallo', 'dagli', 'dalle', 'agli', 'alle', 'sugli', 'sulle', 'degli', 'delle', 'omitted', 'media', 'messaggio', 'eliminato']),
+}
+LOVE_WORDS = {
+    'en': ['love', 'baby', 'babe', 'honey', 'sweetheart', 'darling', 'miss', 'dear', 'cutie', 'sweetie', 'angel', 'handsome', 'beautiful'],
+    'es': ['amor', 'cariño', 'bebé', 'cielo', 'guapo', 'guapa', 'preciosa', 'hermosa', 'linda', 'corazón', 'tesoro', 'querido', 'querida'],
+    'de': ['liebe', 'schatz', 'baby', 'hase', 'maus', 'engel', 'süße', 'süßer', 'bär', 'hübsche', 'hübscher', 'schöne', 'schöner'],
+    'pt': ['amor', 'querido', 'querida', 'bebe', 'fofo', 'fofa', 'lindo', 'linda', 'meu bem', 'anjo', 'gatinha', 'gatinho', 'doce'],
+    'it': ['amore', 'tesoro', 'caro', 'cara', 'bello', 'bella', 'cuore', 'dolce', 'angelo', 'bambino', 'bambina', 'carino', 'carina'],
+}
+
+def love_words_analysis(df, language='en'):
+    love_words = LOVE_WORDS.get(language, LOVE_WORDS['en'])
     results = {}
     for author in df['Author'].unique():
         author_texts = df[df['Author'] == author]['Text'].str.lower().str.cat(sep=' ')
@@ -79,13 +95,12 @@ def question_vs_statement_ratio(df):
         results[author] = {"total": int(total_messages), "questions": int(questions)}
     return results
 
-def top_k_words_by_author(df, k=10):
-    # Same as before
-    stop_words = set(['the', 'to', 'and', 'a', 'of', 'it', 'in', 'you', 'that', 'i', 'is', 'for', 'on', 'are', 'with', 'as', 'this', 'was', 'we', 'be', 'have', 'but', 'not', 'your', 'so', 'me', 'my', 'at', 'he', 'she', 'all', 'omitted', 'media', 'message', 'deleted', 'ok', 'okay', 'yeah', 'lol', 'im', 'its', 'dont', 'yes', 'no'])
+def top_k_words_by_author(df, k=10, language='en'):
+    stop_words = STOP_WORDS.get(language, STOP_WORDS['en'])
     results = {}
     for author in df['Author'].unique():
         author_texts = df[df['Author'] == author]['Text'].str.cat(sep=' ')
-        words = re.findall(r'\b[a-zA-Z]{3,}\b', author_texts.lower())
+        words = re.findall(r'\b\w{3,}\b', author_texts.lower())
         meaningful_words = [word for word in words if word not in stop_words and len(word) > 2]
         word_counts = Counter(meaningful_words)
         results[author] = [{"word": word, "count": count} for word, count in word_counts.most_common(k)]
@@ -95,23 +110,27 @@ def sentiment_analysis_by_author(df):
     # Same as before
     def get_sentiment(text):
         polarity = TextBlob(text).sentiment.polarity
-        if polarity > 0.1: return 'Positive'
-        elif polarity < -0.1: return 'Negative'
-        else: return 'Neutral'
+        if polarity > 0.1:
+            return 'Positive'
+        elif polarity < -0.1:
+            return 'Negative'
+        else:
+            return 'Neutral'
     df['Sentiment'] = df['Text'].apply(get_sentiment)
     sentiment_counts = df.groupby(['Author', 'Sentiment']).size().unstack(fill_value=0)
     return sentiment_counts.to_dict('index')
 
 # --- Plot & Image Generation ---
 
-def create_wordcloud_image(df, author):
-    # Same as before
-    stop_words = set(['the', 'to', 'and', 'a', 'of', 'it', 'in', 'you', 'that', 'i', 'is', 'for', 'on', 'are', 'with', 'as', 'this', 'was', 'we', 'be', 'have', 'but', 'not', 'your', 'so', 'me', 'my', 'at', 'he', 'she', 'all', 'omitted', 'media', 'message', 'deleted', 'ok', 'okay', 'yeah', 'lol', 'im', 'its', 'dont', 'yes', 'no'])
+def create_wordcloud_image(df, author, language='en'):
+    stop_words = STOP_WORDS.get(language, STOP_WORDS['en'])
     author_data = df[df['Author'] == author]
-    if author_data.empty: return ""
+    if author_data.empty:
+        return ""
     text = ' '.join(author_data['Text'].astype(str))
     cleaned_text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE).lower()
-    if not cleaned_text.strip(): return ""
+    if not cleaned_text.strip():
+        return ""
     wordcloud = WordCloud(width=800, height=400, background_color='white', max_words=100, stopwords=stop_words, colormap='viridis').generate(cleaned_text)
     filename = f"wordcloud_{author.replace(' ', '_')}_{uuid.uuid4().hex[:8]}.png"
     filepath = f"temp_images/{filename}"
@@ -127,7 +146,8 @@ def create_message_distribution_chart(message_counts):
 
 def create_sentiment_pies(sentiment_data):
     authors = list(sentiment_data.keys())
-    if not authors: return None
+    if not authors:
+        return None
     
     specs = [[{'type': 'domain'}] * len(authors)]
     fig = make_subplots(rows=1, cols=len(authors), specs=specs, subplot_titles=authors)
@@ -177,7 +197,7 @@ def create_hourly_heatmap(df):
 
 # --- Main Orchestration Function ---
 
-def generate_full_analysis(file_content: str):
+def generate_full_analysis(file_content: str, language: str = 'en'):
     df = pd.read_json(io.StringIO(file_content), orient='split')
     df['Time'] = pd.to_datetime(df['Time'])
     authors = df['Author'].unique().tolist()
@@ -190,7 +210,7 @@ def generate_full_analysis(file_content: str):
     most_active_author = max(message_counts, key=message_counts.get) if message_counts else "N/A"
     most_active_percent = (message_counts[most_active_author] / total_messages * 100) if total_messages > 0 else 0
     sentiment_data = sentiment_analysis_by_author(df)
-    love_words_data = love_words_analysis(df)
+    love_words_data = love_words_analysis(df, language)
     love_words_leader = max(love_words_data, key=love_words_data.get) if love_words_data else "N/A"
     heatmap_plot, peak_hour, peak_msg_count = create_hourly_heatmap(df)
 
@@ -238,7 +258,7 @@ def generate_full_analysis(file_content: str):
             "hourly_heatmap": heatmap_plot,
         },
         "words": {
-            "top_words": top_k_words_by_author(df, 10),
-            "wordclouds": { author: create_wordcloud_image(df, author) for author in authors }
+            "top_words": top_k_words_by_author(df, 10, language),
+            "wordclouds": { author: create_wordcloud_image(df, author, language) for author in authors }
         }
     }
